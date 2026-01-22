@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISM - Integrated Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        const SUPABASE_URL = 'https://gyhvpdsjlciqmbmidctd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5aHZwZHNqbGNpcW1ibWlkY3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTkwMDUsImV4cCI6MjA3MTk3NTAwNX0.cmk7Ov9Mq3RmR5G2laKnn8fcjZYzzGZVwAZ1GX7GxWc';
+        window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary, #f0f2f5);
+            transition: background-color 0.3s ease;
+        }
+
+        /* --- Theme Colors as CSS Variables --- */
+        body[data-theme="dark-steel"] {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #2c2c3e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --card-bg: #2c2c3e;
+            --card-shadow: rgba(0, 0, 0, 0.5);
+            --border-color: #4a5568;
+            --nav-active-bg: #ef4444;
+            --nav-inactive-color: #a0aec0;
+            --nav-hover-bg: #2d3748;
+            --login-btn-bg: #ef4444;
+            --login-btn-hover-bg: #dc2626;
+            --btn-bg: #4a5568;
+            --btn-hover-bg: #2d3748;
+        }
+
+        body[data-theme="ocean-blue"] {
+            --bg-primary: #f0f4f8;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --card-bg: #ffffff;
+            --card-shadow: rgba(0, 0, 0, 0.1);
+            --border-color: #e2e8f0;
+            --nav-active-bg: #3b82f6;
+            --nav-inactive-color: #718096;
+            --nav-hover-bg: #2563eb;
+            --login-btn-bg: #3b82f6;
+            --login-btn-hover-bg: #2563eb;
+            --btn-bg: #3b82f6;
+            --btn-hover-bg: #2563eb;
+        }
+
+        /* --- Apply variables to elements --- */
+        .bg-primary { background-color: var(--bg-primary); }
+        .bg-secondary { background-color: var(--bg-secondary); }
+        .text-primary { color: var(--text-primary); }
+        .text-secondary { color: var(--text-secondary); }
+        .border-color { border-color: var(--border-color); }
+        .btn-bg { background-color: var(--btn-bg); }
+        .btn-bg:hover { background-color: var(--btn-hover-bg); }
+        
+        .nav-active {
+            background-color: var(--nav-active-bg);
+            color: #ffffff;
+        }
+        .nav-inactive {
+            color: var(--nav-inactive-color);
+            transition: all 0.3s ease;
+        }
+        .nav-inactive:hover {
+            background-color: var(--nav-hover-bg);
+            color: #ffffff;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px var(--card-shadow), 0 2px 4px -2px var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px var(--card-shadow), 0 4px 6px -2px var(--card-shadow);
+        }
+        .chart-container {
+            position: relative;
+            inline-size: 100%;
+            max-inline-size: 600px;
+            margin-inline-start: auto;
+            margin-inline-end: auto;
+            block-size: 300px;
+            max-block-size: 400px;
+        }
+        @media (min-inline-size: 768px) {
+            .chart-container {
+                block-size: 350px;
+            }
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            inline-size: 100%;
+            block-size: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            inline-size: 90%;
+            max-inline-size: 500px;
+            z-index: 50;
+        }
+        .message-box {
+            background-color: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-block-end: 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        /* New styles for the login screen */
+        .login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            block-size: 100vh;
+            background-color: var(--bg-primary);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        .login-box {
+            background-color: var(--bg-secondary);
+            padding: 4rem;
+            border-radius: 1rem;
+            box-shadow: 0 8px 30px var(--card-shadow);
+            inline-size: 100%;
+            max-inline-size: 450px;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            animation: fadeInScale 0.5s ease-out forwards;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-block-end: 2rem;
+        }
+        .login-logo img {
+            block-size: 40px;
+            margin-inline-end: 1rem;
+        }
+        .login-logo h1 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .login-title {
+            color: var(--text-primary);
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-block-end: 0.5rem;
+        }
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-block-end: 2rem;
+        }
+        .login-input-group {
+            position: relative;
+            margin-block-end: 1.5rem;
+        }
+        .login-input {
+            inline-size: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        .login-input::placeholder {
+            color: var(--text-secondary);
+        }
+        .input-icon {
+            position: absolute;
+            inset-inline-start: 1rem;
+            inset-block-start: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .login-btn {
+            inline-size: 100%;
+            padding: 1rem;
+            background-color: var(--login-btn-bg);
+            color: #ffffff;
+            font-size: 1.125rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .login-btn:hover {
+            background-color: var(--login-btn-hover-bg);
+        }
+        .login-footer {
+            margin-block-start: 2rem;
+            color: var(--border-color);
+            font-size: 0.75rem;
+        }
+
+        /* Styles for the new table format */
+        .report-table {
+            inline-size: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .report-table th, .report-table td {
+            padding: 1rem;
+            text-align: start;
+            color: var(--text-secondary);
+        }
+        .report-table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            border-block-end: 2px solid var(--border-color);
+        }
+        .report-table td {
+            border-block-end: 1px solid var(--border-color);
+        }
+        .report-table tbody tr:hover {
+            background-color: var(--nav-hover-bg);
+        }
+        .report-table tbody tr:last-child td {
+            border-block-end: none;
+        }
+        .status-pill {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-completed { background-color: #d1fae5; color: #065f46; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-in-progress { background-color: #dbeafe; color: #1e40af; }
+        .status-kia { background-color: #fecaca; color: #991b1b; }
+        .status-wia { background-color: #fee2e2; color: #b91c1c; }
+
+        /* New styles for the toast message */
+        .toast-message {
+            position: fixed;
+            inset-block-end: 2rem;
+            inset-inline-start: 50%;
+            transform: translateX(-50%);
+            background-color: #10b981;
+            color: #ffffff;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 60;
+            text-align: center;
+        }
+        .toast-message.show {
+            opacity: 1;
+        }
+
+        /* Customize Modal specific styles */
+        .theme-option {
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        .theme-option.selected {
+            border-color: #4299e1;
+        }
+        .color-box {
+            inline-size: 100%;
+            block-size: 50px;
+            border-radius: 0.25rem;
+            margin-block-end: 0.5rem;
+        }
+        .dark-steel-preview { background: linear-gradient(to right, #1a1a2e, #2c2c3e); }
+        .ocean-blue-preview { background: linear-gradient(to right, #4299e1, #ffffff); }
+
+        /* Medical Section Specific Styles */
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            background-color: var(--btn-bg);
+            color: #ffffff;
+        }
+        .filter-btn:hover { background-color: var(--btn-hover-bg); }
+        .filter-btn.active {
+            background-color: var(--login-btn-bg);
+            color: #ffffff;
+        }
+        
+        /* Roll of Honor Styles */
+        .honor-card {
+            background-color: var(--card-bg);
+            border-left: 5px solid var(--login-btn-bg);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px var(--card-shadow);
+            text-align: center;
+        }
+        .honor-card-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            object-fit: cover;
+            background-color: var(--border-color);
+        }
+        .honor-card-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .honor-card-unit {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        .honor-card-date {
+            font-size: 0.875rem;
+            color: var(--border-color);
+            margin-top: 0.5rem;
+        }
+
+        /* Soldier Detail Page Styles */
+        .soldier-detail-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .soldier-profile-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+        .soldier-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        .soldier-info {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+        .detail-section-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--login-btn-bg);
+        }
+        .tribute-card {
+            background-color: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--border-color);
+        }
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .photo-gallery img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="login-container" class="login-screen">
+        <div class="login-box">
+            <div class="login-logo">
+                <img src="https://placehold.co/100x100/A0AEC0/ffffff?text=P" alt="PRISM Logo" />
+                <h1 class="text-3xl font-bold tracking-wider">PRISM</h1>
+            </div>
+            
+            <p class="login-subtitle">Authorized Personnel Only</p>
+            <div id="login-message" class="hidden message-box"></div>
+            <form id="loginForm">
+                <div class="login-input-group">
+                    <label for="username" class="sr-only">Username</label>
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="username" name="username" class="login-input" placeholder="Enter your username">
+                </div>
+                <div class="login-input-group">
+                    <label for="password" class="sr-only">Password</label>
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" name="password" class="login-input" placeholder="Enter your password">
+                </div>
+                <button type="submit" class="login-btn">Log In</button>
+            </form>
+            <p class="login-footer">This system is for authorized use only. All activities are monitored and recorded.</p>
+        </div>
+    </div>
+    
+    <div id="app" class="flex flex-col min-h-screen hidden bg-primary">
+        
+        <header class="bg-secondary text-primary p-4 shadow-md">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <a href="#facilities" class="text-2xl font-bold tracking-wider text-primary">PRISM</a>
+                    <p class="text-sm text-secondary md:ml-4">Integrated Command Center</p>
+                </div>
+                <ul class="flex items-center space-x-2 md:space-x-4">
+                    <li><a href="#facilities" class="nav-item py-2 px-3 rounded-md nav-active" data-section="facilities">
+                        <span class="mr-1">🏠</span> Reports
+                    </a></li>
+                    <li><a href="#armory" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="armory">
+                        <span class="mr-1">🛡️</span> Inventory
+                    </a></li>
+                    <li><a href="#medical" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="medical">
+                        <span class="mr-1">⚕️</span> Medical
+                    </a></li>
+                    <li><a href="#settings" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="settings">
+                        <span class="mr-1">⚙️</span> Settings
+                    </a></li>
+                    <li><a href="#" id="logoutBtn" class="nav-item py-2 px-3 rounded-md nav-inactive">
+                        <span class="mr-1">🚪</span> Log Out
+                    </a></li>
+                </ul>
+            </div>
+        </header>
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+
+            <section id="facilities" class="content-section">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-4 sm:mb-0">Facility & Quarters Management</h2>
+                    <button id="openModalBtn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto">New Report</button>
+                </div>
+                <p class="mb-8 text-secondary max-w-3xl">This section provides a centralized system for soldiers to report and track issues related to their living quarters and base facilities, such as electricity, water, or structural problems. The goal is to streamline maintenance requests and improve living conditions efficiently.</p>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-primary">Recent Activity</h3>
+                    <div class="overflow-x-auto">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-container">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="armory" class="content-section hidden">
+                <div id="armory-view">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-primary mb-4 sm:mb-0">Armory & Logistics Inventory</h2>
+                    </div>
+                    <p class="mb-8 text-secondary max-w-3xl">This module provides a real-time, comprehensive overview of the armory's inventory. It allows for effective management of weapons, ammunition, and other critical equipment, ensuring mission readiness and accountability of all assets.</p>
+                    <div id="armory-access-message" class="message-box hidden bg-yellow-100 text-yellow-800 border-yellow-400"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="armory-content">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-center text-primary">Weapon Categories</h3>
+                            <div class="chart-container h-64 md:h-80">
+                                <canvas id="weaponChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-center text-primary">Ammunition Stock Levels</h3>
+                            <div class="chart-container h-64 md:h-80">
+                                <canvas id="ammoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="armory-details-section" class="content-section hidden">
+                <div class="max-w-4xl mx-auto card p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h1 class="text-3xl font-bold text-primary" id="armory-details-title"></h1>
+                        <button id="back-to-armory-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>Back to Armory</span>
+                        </button>
+                    </div>
+                    <div class="space-y-6" id="weapon-details-container">
+                        </div>
+                </div>
+            </section>
+
+            <section id="medical" class="content-section hidden">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-4 md:mb-0">Medical & Casualty Reporting</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="openMedevacModalBtn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Request Medevac</button>
+                        <button id="openAddCasualtyModalBtn" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">Add Casualty</button>
+                        <button id="viewRollOfHonorBtn" class="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Roll of Honor</button>
+                    </div>
+                </div>
+                <p class="mb-8 text-secondary max-w-3xl">This system tracks and displays vital medical health statistics and casualty reports from the field. It provides accurate, up-to-date data to support command decisions and ensure proper government reporting to honor the service and sacrifice of soldiers.</p>
+                
+                <div id="medical-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Active Duty (WIA)</h4>
+                        <p id="wia-count" class="text-4xl font-bold text-orange-500">0</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Lives Lost (KIA)</h4>
+                        <p id="kia-count" class="text-4xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Medevac Requests</h4>
+                        <p id="medevac-count" class="text-4xl font-bold text-blue-500">0</p>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-primary mb-4 sm:mb-0">Live Casualty Feed</h3>
+                        <div id="casualty-filters" class="flex space-x-2">
+                            <button data-filter="all" class="filter-btn active">All</button>
+                            <button data-filter="WIA" class="filter-btn">WIA</button>
+                            <button data-filter="KIA" class="filter-btn">KIA</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Soldier</th>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                    <th>Injury</th>
+                                </tr>
+                            </thead>
+                            <tbody id="casualty-log-container">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-primary">Casualty Trends (Last 30 Days)</h3>
+                        <div class="chart-container h-80">
+                            <canvas id="casualtyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-primary">Injury Type Distribution</h3>
+                        <div class="chart-container h-80">
+                            <canvas id="injuryTypeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="rollOfHonor" class="content-section hidden">
+                <div class="max-w-5xl mx-auto">
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-4xl font-bold text-primary tracking-wider">Roll of Honor</h2>
+                        <button id="back-to-medical-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>Back to Medical</span>
+                        </button>
+                    </div>
+                    <p class="text-center text-secondary mb-12 text-lg">In remembrance of those who made the ultimate sacrifice. We honor their courage, service, and memory.</p>
+                    <div id="honor-roll-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    </div>
+                </div>
+            </section>
+
+            <section id="soldierDetail" class="content-section hidden">
+                <div class="max-w-5xl mx-auto">
+                    <div class="flex justify-end mb-4">
+                        <button id="back-to-honor-roll-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>Back to Roll of Honor</span>
+                        </button>
+                    </div>
+                    <div id="soldier-detail-content" class="card p-8">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </section>
+            
+            <section id="settings" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-primary mb-2">Settings</h2>
+                <p class="mb-8 text-secondary">Manage your profile, security, and application preferences.</p>
+                <div id="toastMessage" class="toast-message"></div>
+                <div class="space-y-8">
+                    <form id="profileForm" class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Profile Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium text-secondary">Full Name</label>
+                                <input type="text" id="fullName" name="fullName" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Full Name">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-secondary">Email</label>
+                                <input type="email" id="email" name="email" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Email Address">
+                            </div>
+                            <div>
+                                <label for="rank" class="block text-sm font-medium text-secondary">Rank</label>
+                                <input type="text" id="rank" name="rank" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Rank">
+                            </div>
+                            <div>
+                                <label for="unit" class="block text-sm font-medium text-secondary">Unit</label>
+                                <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Unit">
+                            </div>
+                        </div>
+                        <div class="mt-6 text-right">
+                            <button type="submit" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">Update Profile</button>
+                        </div>
+                    </form>
+
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Security Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Change Password</h4>
+                                    <p class="text-sm text-secondary">Update your password regularly to maintain security.</p>
+                                </div>
+                                <button id="openChangePasswordModalBtn" class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Application Preferences</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Notification Preferences</h4>
+                                    <p class="text-sm text-secondary">Manage how you receive critical updates and alerts.</p>
+                                </div>
+                                <button class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Manage</button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Theme</h4>
+                                    <p class="text-sm text-secondary">Customize the application's appearance.</p>
+                                </div>
+                                <button id="openThemeModalBtn" class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Customize</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="reportModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Submit New Facility Report</h3>
+            <form id="reportForm">
+                <div class="mb-4">
+                    <label for="issueType" class="block text-secondary font-semibold mb-2">Issue Type</label>
+                    <select id="issueType" name="issueType" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>Electricity</option>
+                        <option>Water/Plumbing</option>
+                        <option>Structural</option>
+                        <option>Room Fixtures</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="location" class="block text-secondary font-semibold mb-2">Building/Room Number</label>
+                    <input type="text" id="location" name="location" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="e.g., Barracks B, Room 201">
+                </div>
+                <div class="mb-6">
+                    <label for="description" class="block text-secondary font-semibold mb-2">Description</label>
+                    <textarea id="description" name="description" rows="4" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Please provide a detailed description of the issue."></textarea>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="armoryLoginModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Armory Access Required</h3>
+            <p class="text-secondary mb-4">Please enter your Authority ID to view this section.</p>
+            <div id="armoryMessage" class="hidden message-box"></div>
+            <form id="armoryLoginForm">
+                <div class="mb-4 relative">
+                    <label for="authorityId" class="block text-secondary font-semibold mb-2">Authority ID</label>
+                    <input type="password" id="authorityId" name="authorityId" class="w-full p-2 pr-12 border border-color rounded-lg bg-primary text-primary" placeholder="Enter your ID">
+                    <button type="button" id="togglePasswordVisibility" class="absolute right-2 top-10 p-2 text-secondary hover:text-primary focus:outline-none">
+                        Show
+                    </button>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeArmoryModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Log In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="changePasswordModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Change Password</h3>
+            <div id="changePasswordMessage" class="hidden message-box"></div>
+            <form id="changePasswordForm">
+                <div class="mb-4">
+                    <label for="currentPassword" class="block text-secondary font-semibold mb-2">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Enter current password">
+                </div>
+                <div class="mb-4">
+                    <label for="newPassword" class="block text-secondary font-semibold mb-2">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Enter new password">
+                </div>
+                <div class="mb-6">
+                    <label for="confirmNewPassword" class="block text-secondary font-semibold mb-2">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Re-enter new password">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeChangePasswordModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="themeModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Customize Theme</h3>
+            <p class="text-secondary mb-6">Select a color theme for the dashboard.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="theme-option" data-theme="dark-steel">
+                    <div class="color-box dark-steel-preview"></div>
+                    <p class="font-semibold text-center text-primary">Dark Steel</p>
+                </div>
+                <div class="theme-option" data-theme="ocean-blue">
+                    <div class="color-box ocean-blue-preview"></div>
+                    <p class="font-semibold text-center text-primary">Ocean Blue</p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-6">
+                <button type="button" id="closeThemeModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="medevacModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Request Medical Evacuation</h3>
+            <form id="medevacForm">
+                <div class="mb-4">
+                    <label for="soldierName" class="block text-secondary font-semibold mb-2">Soldier Name</label>
+                    <input type="text" id="soldierName" name="soldierName" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="soldierUnit" class="block text-secondary font-semibold mb-2">Unit</label>
+                    <input type="text" id="soldierUnit" name="soldierUnit" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="injuryDetails" class="block text-secondary font-semibold mb-2">Injury Details</label>
+                    <textarea id="injuryDetails" name="injuryDetails" rows="3" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required></textarea>
+                </div>
+                <div class="mb-6">
+                    <label for="urgency" class="block text-secondary font-semibold mb-2">Urgency</label>
+                    <select id="urgency" name="urgency" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>Routine</option>
+                        <option>Priority</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeMedevacModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="addCasualtyModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Add Casualty Report</h3>
+            <form id="addCasualtyForm">
+                <div class="mb-4">
+                    <label for="casualtySoldierName" class="block text-secondary font-semibold mb-2">Soldier Name</label>
+                    <input type="text" id="casualtySoldierName" name="casualtySoldierName" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="casualtySoldierUnit" class="block text-secondary font-semibold mb-2">Unit</label>
+                    <input type="text" id="casualtySoldierUnit" name="casualtySoldierUnit" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="casualtyStatus" class="block text-secondary font-semibold mb-2">Status</label>
+                    <select id="casualtyStatus" name="casualtyStatus" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>WIA</option>
+                        <option>KIA</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="casualtyInjury" class="block text-secondary font-semibold mb-2">Injury</label>
+                    <input type="text" id="casualtyInjury" name="casualtyInjury" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeAddCasualtyModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    const navItems = document.querySelectorAll('.nav-item');
+    const contentSections = document.querySelectorAll('.content-section');
+    const appContainer = document.getElementById('app');
+    const loginContainer = document.getElementById('login-container');
+    const loginForm = document.getElementById('loginForm');
+    const loginMessage = document.getElementById('login-message');
+    const profileForm = document.getElementById('profileForm');
+    const openChangePasswordModalBtn = document.getElementById('openChangePasswordModalBtn');
+    const changePasswordModal = document.getElementById('changePasswordModal');
+    const closeChangePasswordModalBtn = document.getElementById('closeChangePasswordModalBtn');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const openThemeModalBtn = document.getElementById('openThemeModalBtn');
+    const themeModal = document.getElementById('themeModal');
+    const closeThemeModalBtn = document.getElementById('closeThemeModalBtn');
+    const themeOptions = document.querySelectorAll('.theme-option');
+    const logoutBtn = document.getElementById('logoutBtn');
+    let charts = {};
+    let currentCasualtyData = [];
+    
+    Chart.register(ChartDataLabels);
+
+    // Hardcoded weapon data
+    const weaponData = {
+        'Rifles': [
+            { name: 'M4 Carbine', count: 500, description: 'Standard issue assault rifle.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M4' },
+            { name: 'FN SCAR', count: 120, description: 'Modular assault rifle for various engagements.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=SCAR' },
+            { name: 'AK-47', count: 250, description: 'Reliable and durable assault rifle.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=AK47' },
+            { name: 'M16A4', count: 350, description: 'Classic full-sized assault rifle.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M16' },
+            { name: 'HK416', count: 180, description: 'Gas piston assault rifle with high reliability.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=HK416' },
+        ],
+        'Pistols': [
+            { name: 'Beretta M9', count: 450, description: 'Standard issue sidearm.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M9' },
+            { name: 'Glock 19', count: 300, description: 'Reliable polymer-framed pistol.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=Glock19' },
+            { name: 'SIG Sauer P320', count: 220, description: 'Modular pistol adopted by the military.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=P320' },
+        ],
+        'Support Weapons': [
+            { name: 'M249 SAW', count: 75, description: 'Light machine gun for fire support.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=SAW' },
+            { name: 'M240B', count: 40, description: 'Medium machine gun with high reliability.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M240B' },
+            { name: 'M2 Browning', count: 15, description: 'Heavy machine gun, widely used.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M2' },
+        ],
+        'Explosives': [
+            { name: 'M67 Grenade', count: 300, description: 'Standard fragmentation grenade.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M67' },
+            { name: 'M18 Smoke Grenade', count: 150, description: 'Color smoke grenade for signaling.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=M18' },
+            { name: 'C4', count: 80, description: 'Plastic explosive for demolition.', image_url: 'https://placehold.co/100x100/A0AEC0/ffffff?text=C4' },
+        ]
+    };
+
+    const casualtyFilters = document.getElementById('casualty-filters');
+
+    function renderCasualtyLog(filter = 'all') {
+        const logContainer = document.getElementById('casualty-log-container');
+        if (!logContainer) return;
+        
+        const filteredData = filter === 'all' ? currentCasualtyData : currentCasualtyData.filter(d => d.status === filter);
+        logContainer.innerHTML = '';
+
+        if (filteredData.length === 0) {
+            logContainer.innerHTML = `<tr><td colspan="5" class="text-center text-secondary py-4">No records found for this filter.</td></tr>`;
+        } else {
+            filteredData.forEach(log => {
+                const statusClass = log.status === 'KIA' ? 'status-kia' : 'status-wia';
+                const row = `
+                    <tr>
+                        <td>${new Date(log.created_at).toLocaleDateString()}</td>
+                        <td>${log.soldier}</td>
+                        <td>${log.unit}</td>
+                        <td><span class="status-pill ${statusClass}">${log.status}</span></td>
+                        <td>${log.injury}</td>
+                    </tr>`;
+                logContainer.innerHTML += row;
+            });
+        }
+    }
+
+    if (casualtyFilters) {
+        casualtyFilters.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelectorAll('#casualty-filters .filter-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                renderCasualtyLog(e.target.dataset.filter);
+            }
+        });
+    }
+    
+    async function fetchAndRenderReports() {
+        const reportsContainer = document.getElementById('reports-container');
+        if (!reportsContainer) return;
+        reportsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-secondary py-4">Loading reports...</td></tr>`;
+
+        const { data: reports, error } = await window.supabase
+            .from('facility_reports')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Error fetching reports:', error);
+            if(reportsContainer) {
+                reportsContainer.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error loading reports. Please check the console.</td></tr>`;
+            }
+            return;
+        }
+
+        renderFacilityReports(reports);
+    }
+
+    function renderFacilityReports(reports) {
+        const reportsContainer = document.getElementById('reports-container');
+        if(!reportsContainer) return;
+
+        reportsContainer.innerHTML = '';
+        if (reports.length === 0) {
+            reportsContainer.innerHTML = '<tr><td colspan="4" class="text-center text-secondary py-4">No facility reports found. Submit one to get started.</td></tr>';
+        } else {
+            reports.forEach(report => {
+                const statusClass = {
+                    'Pending': 'status-pending',
+                    'In Progress': 'status-in-progress',
+                    'Completed': 'status-completed'
+                };
+                const date = new Date(report.created_at).toLocaleDateString('en-US');
+
+                const row = `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${report.issue_type}</td>
+                        <td>${report.description}</td>
+                        <td><span class="status-pill ${statusClass[report.status] || ''}">${report.status}</span></td>
+                    </tr>
+                `;
+                reportsContainer.innerHTML += row;
+            });
+        }
+    }
+
+    window.supabase
+        .channel('reports_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'facility_reports' }, payload => {
+            fetchAndRenderReports();
+        })
+        .subscribe();
+    
+    window.supabase
+        .channel('casualties_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'casualties' }, payload => {
+            initMedicalDashboard();
+        })
+        .subscribe();
+
+    function getChartData() {
+        const labels = Object.keys(weaponData);
+        const data = labels.map(label => {
+            return weaponData[label].reduce((sum, weapon) => sum + weapon.count, 0);
+        });
+        
+        return { labels, data };
+    }
+
+    async function fetchAmmunitionData() {
+        const { data, error } = await window.supabase
+            .from('ammunition_stock')
+            .select('caliber, quantity_in_thousands')
+            .order('caliber', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching ammunition data:', error);
+            return { labels: [], data: [], error: true };
+        }
+        
+        const labels = data.map(item => item.caliber);
+        const quantities = data.map(item => item.quantity_in_thousands);
+
+        return { labels, data: quantities, error: false };
+    }
+
+    async function initArmoryCharts() {
+        const weaponChartData = getChartData();
+        const ammoChartData = await fetchAmmunitionData();
+
+        if (charts.weaponChart) charts.weaponChart.destroy();
+        if (charts.ammoChart) charts.ammoChart.destroy();
+        
+        const theme = document.body.getAttribute('data-theme');
+        const textColor = theme === 'dark-steel' ? '#ffffff' : '#4a5568';
+
+
+        const weaponCtx = document.getElementById('weaponChart').getContext('2d');
+        charts.weaponChart = new Chart(weaponCtx, {
+            type: 'doughnut',
+            data: {
+                labels: weaponChartData.labels,
+                datasets: [{
+                    label: 'Weapon Distribution',
+                    data: weaponChartData.data,
+                    backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'],
+                    borderColor: theme === 'dark-steel' ? '#2c2c3e' : '#ffffff',
+                    borderWidth: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: textColor } }
+                },
+                onClick: (e, elements) => {
+                    if (elements.length > 0) {
+                        const clickedIndex = elements[0].index;
+                        const category = charts.weaponChart.data.labels[clickedIndex];
+                        showWeaponDetails(category);
+                    }
+                }
+            }
+        });
+
+        const ammoCtx = document.getElementById('ammoChart').getContext('2d');
+        if (ammoChartData.error) {
+            ammoCtx.parentNode.innerHTML = '<p class="text-center text-red-500">Error loading ammunition data. Please create the `ammunition_stock` table.</p>';
+        } else {
+            charts.ammoChart = new Chart(ammoCtx, {
+                type: 'bar',
+                data: {
+                    labels: ammoChartData.labels,
+                    datasets: [{
+                        label: 'Rounds in Stock (in thousands)',
+                        data: ammoChartData.data,
+                        backgroundColor: '#3B82F6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            ticks: { color: textColor },
+                            grid: { color: 'rgba(128,128,128,0.2)' }
+                         },
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: (value) => value.toLocaleString() + 'k',
+                            font: {
+                                weight: 'bold'
+                            },
+                            color: textColor
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    window.supabase
+        .channel('ammunition_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ammunition_stock' }, payload => {
+            console.log('Ammunition data changed!', payload);
+            initArmoryCharts();
+        })
+        .subscribe();
+
+    async function initMedicalDashboard() {
+        const logContainer = document.getElementById('casualty-log-container');
+        if (logContainer) {
+            logContainer.innerHTML = `<tr><td colspan="5" class="text-center text-secondary py-4">Loading live casualty feed...</td></tr>`;
+        }
+
+        const { data, error } = await window.supabase.from('casualties').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error("Error fetching casualties", error);
+            return;
+        }
+        currentCasualtyData = data;
+        
+        const wiaCount = currentCasualtyData.filter(d => d.status === 'WIA').length;
+        const kiaCount = currentCasualtyData.filter(d => d.status === 'KIA').length;
+        document.getElementById('wia-count').textContent = wiaCount;
+        document.getElementById('kia-count').textContent = kiaCount;
+        
+        const { data: medevacData, error: medevacError } = await window.supabase.from('medevac_requests').select('id', { count: 'exact' });
+        if(!medevacError) {
+             document.getElementById('medevac-count').textContent = medevacData.length;
+        }
+
+        const activeFilter = document.querySelector('#casualty-filters .filter-btn.active').dataset.filter;
+        renderCasualtyLog(activeFilter);
+
+        if (charts.casualtyChart) charts.casualtyChart.destroy();
+        if (charts.injuryTypeChart) charts.injuryTypeChart.destroy();
+
+        const theme = document.body.getAttribute('data-theme');
+        const textColor = theme === 'dark-steel' ? '#ffffff' : '#4a5568';
+        const gridColor = theme === 'dark-steel' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+        const casualtyCtx = document.getElementById('casualtyChart').getContext('2d');
+        charts.casualtyChart = new Chart(casualtyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current'],
+                datasets: [
+                    {
+                        label: 'Wounded in Action',
+                        data: [15, 22, 18, 25, wiaCount], 
+                        borderColor: '#F97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Killed in Action',
+                        data: [2, 4, 3, 5, kiaCount], 
+                        borderColor: '#DC2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { color: textColor }, 
+                        grid: { color: gridColor } 
+                    }, 
+                    x: { 
+                        ticks: { color: textColor }, 
+                        grid: { color: gridColor } 
+                    } 
+                },
+                plugins: { legend: { labels: { color: textColor } } }
+            }
+        });
+
+        const injuryTypes = currentCasualtyData.reduce((acc, curr) => {
+            acc[curr.injury] = (acc[curr.injury] || 0) + 1;
+            return acc;
+        }, {});
+        
+        const injuryCtx = document.getElementById('injuryTypeChart').getContext('2d');
+        charts.injuryTypeChart = new Chart(injuryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(injuryTypes),
+                datasets: [{
+                    label: 'Injury Types',
+                    data: Object.values(injuryTypes),
+                    backgroundColor: ['#EF4444', '#F59E0B', '#84CC16', '#22C55E', '#14B8A6'],
+                    borderColor: theme === 'dark-steel' ? '#2c2c3e' : '#ffffff',
+                    borderWidth: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: textColor } } }
+            }
+        });
+    }
+
+    const armoryLoginModal = document.getElementById('armoryLoginModal');
+    const armoryLoginForm = document.getElementById('armoryLoginForm');
+    const armoryMessage = document.getElementById('armoryMessage');
+    const closeArmoryModalBtn = document.getElementById('closeArmoryModalBtn');
+    const authorityIdInput = document.getElementById('authorityId');
+    const togglePasswordVisibility = document.getElementById('togglePasswordVisibility');
+
+    if (togglePasswordVisibility) {
+        togglePasswordVisibility.addEventListener('click', () => {
+            const currentType = authorityIdInput.getAttribute('type');
+            authorityIdInput.setAttribute('type', currentType === 'password' ? 'text' : 'password');
+            togglePasswordVisibility.textContent = currentType === 'password' ? 'Hide' : 'Show';
+        });
+    }
+
+    if (closeArmoryModalBtn) {
+        closeArmoryModalBtn.addEventListener('click', () => {
+            armoryLoginModal.classList.add('hidden');
+            authorityIdInput.value = '';
+            authorityIdInput.setAttribute('type', 'password');
+            if (togglePasswordVisibility) {
+                togglePasswordVisibility.textContent = 'Show';
+            }
+        });
+    }
+
+    if (armoryLoginForm) {
+        armoryLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const enteredId = authorityIdInput.value;
+            
+            const { data, error } = await window.supabase
+                .from('armory_authorities')
+                .select('position')
+                .eq('authority_id', enteredId);
+
+            if (error) {
+                console.error('Login error:', error);
+                armoryMessage.textContent = 'An error occurred. Please try again.';
+                armoryMessage.classList.remove('hidden');
+                return;
+            }
+
+            if (data && data.length > 0) {
+                const userPosition = data[0].position;
+                sessionStorage.setItem('armoryAuthorized', 'true');
+                sessionStorage.setItem('armoryUserPosition', userPosition);
+                armoryLoginModal.classList.add('hidden');
+                switchSection('armory');
+
+                const { error: logError } = await window.supabase
+                    .from('login_history')
+                    .insert([ { user_id: enteredId, login_time: new Date().toISOString(), position: userPosition } ]);
+
+                if (logError) {
+                    console.error('Failed to log login history:', logError);
+                }
+            } else {
+                armoryMessage.textContent = 'Invalid ID. Access denied.';
+                armoryMessage.classList.remove('hidden');
+            }
+        });
+    }
+
+    async function switchSection(targetId) {
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            loginContainer.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            return;
+        }
+
+        if (targetId === 'armory') {
+            const isAuthorized = sessionStorage.getItem('armoryAuthorized') === 'true';
+            if (!isAuthorized) {
+                armoryLoginModal.classList.remove('hidden');
+                return;
+            }
+        }
+
+        contentSections.forEach(section => {
+            section.classList.add('hidden');
+        });
+        
+        document.getElementById(targetId).classList.remove('hidden');
+
+        navItems.forEach(item => {
+            if (item.dataset.section === targetId) {
+                item.classList.replace('nav-inactive', 'nav-active');
+            } else {
+                item.classList.replace('nav-active', 'nav-inactive');
+            }
+        });
+
+        if (targetId === 'armory') {
+            await initArmoryCharts();
+        } else if (targetId === 'medical') {
+            await initMedicalDashboard();
+        } else if (targetId === 'settings') {
+            await fetchUserProfile();
+        }
+    }
+    
+    navItems.forEach(item => {
+        if (item.id !== 'logoutBtn') { // Exclude logout button from section switching
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchSection(item.dataset.section);
+            });
+        }
+    });
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sessionStorage.clear();
+            appContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+            window.location.hash = ''; // Clear the hash
+        });
+    }
+
+    const reportModal = document.getElementById('reportModal');
+    const openModalBtn = document.getElementById('openModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const reportForm = document.getElementById('reportForm');
+
+    if (openModalBtn) openModalBtn.addEventListener('click', () => reportModal.classList.remove('hidden'));
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => reportModal.classList.add('hidden'));
+    
+    window.addEventListener('click', (e) => {
+        if (e.target === reportModal) {
+            reportModal.classList.add('hidden');
+        }
+    });
+
+    if (reportForm) {
+        reportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newReport = {
+                issue_type: e.target.issueType.value,
+                location: e.target.location.value,
+                status: 'Pending',
+                description: e.target.description.value
+            };
+            
+            const { error } = await window.supabase.from('facility_reports').insert([newReport]);
+            
+            if (error) {
+                console.error('Error submitting report:', error);
+                showToast("Error submitting report.", false);
+            } else {
+                reportModal.classList.add('hidden');
+                e.target.reset();
+                showToast("Report submitted successfully!");
+            }
+        });
+    }
+
+    const medevacModal = document.getElementById('medevacModal');
+    const openMedevacModalBtn = document.getElementById('openMedevacModalBtn');
+    const closeMedevacModalBtn = document.getElementById('closeMedevacModalBtn');
+    const medevacForm = document.getElementById('medevacForm');
+
+    if (openMedevacModalBtn) openMedevacModalBtn.addEventListener('click', () => medevacModal.classList.remove('hidden'));
+    if (closeMedevacModalBtn) closeMedevacModalBtn.addEventListener('click', () => medevacModal.classList.add('hidden'));
+    
+    if (medevacForm) {
+        medevacForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newRequest = {
+                soldier_name: e.target.soldierName.value,
+                unit: e.target.soldierUnit.value,
+                injury_details: e.target.injuryDetails.value,
+                urgency: e.target.urgency.value,
+                status: 'Pending'
+            };
+            
+            const { error } = await window.supabase.from('medevac_requests').insert([newRequest]);
+            
+            if (error) {
+                console.error('Error submitting medevac request:', error);
+                showToast('Failed to submit Medevac request.', false);
+            } else {
+                medevacModal.classList.add('hidden');
+                e.target.reset();
+                showToast('Medevac request submitted successfully!');
+                const medevacCountEl = document.getElementById('medevac-count');
+                medevacCountEl.textContent = parseInt(medevacCountEl.textContent) + 1;
+            }
+        });
+    }
+
+    const addCasualtyModal = document.getElementById('addCasualtyModal');
+    const openAddCasualtyModalBtn = document.getElementById('openAddCasualtyModalBtn');
+    const closeAddCasualtyModalBtn = document.getElementById('closeAddCasualtyModalBtn');
+    const addCasualtyForm = document.getElementById('addCasualtyForm');
+
+    if(openAddCasualtyModalBtn) openAddCasualtyModalBtn.addEventListener('click', () => addCasualtyModal.classList.remove('hidden'));
+    if(closeAddCasualtyModalBtn) closeAddCasualtyModalBtn.addEventListener('click', () => addCasualtyModal.classList.add('hidden'));
+
+    if(addCasualtyForm) {
+        addCasualtyForm.addEventListener('submit', async(e) => {
+            e.preventDefault();
+            const newCasualty = {
+                soldier: e.target.casualtySoldierName.value,
+                unit: e.target.casualtySoldierUnit.value,
+                status: e.target.casualtyStatus.value,
+                injury: e.target.casualtyInjury.value,
+            };
+
+            const { error } = await window.supabase.from('casualties').insert([newCasualty]);
+
+            if (error) {
+                console.error('Error adding casualty:', error);
+                showToast('Failed to add casualty report.', false);
+            } else {
+                addCasualtyModal.classList.add('hidden');
+                e.target.reset();
+                showToast('Casualty report added successfully!');
+            }
+        });
+    }
+    
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = e.target.username.value;
+        const password = e.target.password.value;
+
+        const { data, error } = await window.supabase
+            .from('users')
+            .select('position')
+            .eq('username', username)
+            .eq('password', password);
+
+        if (error) {
+            console.error('Login error:', error);
+            loginMessage.textContent = 'An unexpected error occurred.';
+            loginMessage.classList.remove('hidden');
+            return;
+        }
+        
+        if (data && data.length > 0) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('username', username);
+            loginContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            
+            const hash = window.location.hash.replace('#', '');
+            const validSections = ['facilities', 'armory', 'medical', 'settings'];
+            if (hash && validSections.includes(hash)) {
+                switchSection(hash);
+            } else {
+                switchSection('facilities');
+            }
+            fetchAndRenderReports();
+        } else {
+            loginMessage.textContent = 'Invalid username or password.';
+            loginMessage.classList.remove('hidden');
+        }
+    });
+
+    const fullNameInput = document.getElementById('fullName');
+    const emailInput = document.getElementById('email');
+    const rankInput = document.getElementById('rank');
+    const unitInput = document.getElementById('unit');
+    const toastMessage = document.getElementById('toastMessage');
+
+    function showToast(message, isSuccess = true) {
+        toastMessage.textContent = message;
+        toastMessage.style.backgroundColor = isSuccess ? '#10b981' : '#ef4444';
+        toastMessage.classList.add('show');
+        setTimeout(() => {
+            toastMessage.classList.remove('show');
+        }, 3000);
+    }
+
+    async function fetchUserProfile() {
+        const username = sessionStorage.getItem('username');
+        if (!username) return;
+
+
+        const { data, error } = await window.supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('username', username)
+            .single();
+
+        if (error) {
+            console.error('Error fetching user profile:', error);
+            showToast('Failed to load profile data.', false);
+            return;
+        }
+
+        if (data) {
+            fullNameInput.value = data.full_name || '';
+            emailInput.value = data.email || '';
+            rankInput.value = data.rank || '';
+            unitInput.value = data.unit || '';
+        }
+    }
+
+    if(profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = sessionStorage.getItem('username');
+            if (!username) return;
+
+            const updates = {
+                full_name: fullNameInput.value,
+                email: emailInput.value,
+                rank: rankInput.value,
+                unit: unitInput.value
+            };
+
+            const { error } = await window.supabase
+                .from('user_profiles')
+                .update(updates)
+                .eq('username', username);
+
+            if (error) {
+                console.error('Error updating profile:', error);
+                showToast('Failed to update profile.', false);
+            } else {
+                showToast('Profile has been updated!');
+            }
+        });
+    }
+
+    if (openChangePasswordModalBtn) openChangePasswordModalBtn.addEventListener('click', () => changePasswordModal.classList.remove('hidden'));
+    if (closeChangePasswordModalBtn) closeChangePasswordModalBtn.addEventListener('click', () => {
+        changePasswordModal.classList.add('hidden');
+        changePasswordForm.reset();
+    });
+
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = e.target.currentPassword.value;
+            const newPassword = e.target.newPassword.value;
+            const confirmNewPassword = e.target.confirmNewPassword.value;
+            const changePasswordMessage = document.getElementById('changePasswordMessage');
+            const username = sessionStorage.getItem('username');
+
+            changePasswordMessage.classList.add('hidden');
+
+            if (newPassword !== confirmNewPassword) {
+                changePasswordMessage.textContent = 'New passwords do not match.';
+                changePasswordMessage.classList.remove('hidden');
+                return;
+            }
+
+            const { data, error } = await window.supabase
+                .from('users')
+                .select('password')
+                .eq('username', username)
+                .single();
+
+            if (error) {
+                changePasswordMessage.textContent = 'An error occurred. Please try again.';
+                changePasswordMessage.classList.remove('hidden');
+                return;
+            }
+
+            if (data.password !== currentPassword) {
+                changePasswordMessage.textContent = 'Incorrect current password.';
+                changePasswordMessage.classList.remove('hidden');
+                return;
+            }
+            
+            const { error: updateError } = await window.supabase
+                .from('users')
+                .update({ password: newPassword })
+                .eq('username', username);
+            
+            if (updateError) {
+                changePasswordMessage.textContent = 'Failed to update password. Please try again.';
+                changePasswordMessage.classList.remove('hidden');
+                showToast('Failed to update password.', false);
+            } else {
+                changePasswordModal.classList.add('hidden');
+                showToast('Password has been updated!');
+                changePasswordForm.reset();
+            }
+        });
+    }
+
+    function showWeaponDetails(category) {
+        const detailsSection = document.getElementById('armory-details-section');
+        const detailsContainer = document.getElementById('weapon-details-container');
+        const pageTitle = document.getElementById('armory-details-title');
+        
+        if (detailsSection && detailsContainer && pageTitle) {
+            pageTitle.textContent = `${category} Inventory`;
+            const weapons = weaponData[category] || [];
+            
+            detailsContainer.innerHTML = weapons.map(weapon => `
+                <div class="flex items-center space-x-4 p-4 rounded-lg bg-primary">
+                    <img src="${weapon.image_url}" alt="${weapon.name}" class="w-16 h-16 rounded-md">
+                    <div>
+                        <p class="text-lg font-semibold text-primary">${weapon.name}</p>
+                        <p class="text-sm text-secondary">${weapon.description}</p>
+                        <p class="text-sm text-secondary mt-1">Count: ${weapon.count}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('armory').classList.add('hidden');
+            detailsSection.classList.remove('hidden');
+        }
+    }
+    
+    const backToArmoryBtn = document.getElementById('back-to-armory-btn');
+    if (backToArmoryBtn) {
+        backToArmoryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('armory-details-section').classList.add('hidden');
+            document.getElementById('armory').classList.remove('hidden');
+        });
+    }
+
+    const currentTheme = localStorage.getItem('theme') || 'dark-steel';
+    document.body.setAttribute('data-theme', currentTheme);
+
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        loginContainer.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        const hash = window.location.hash.replace('#', '');
+        const validSections = ['facilities', 'armory', 'medical', 'settings'];
+        if (hash && validSections.includes(hash)) {
+            switchSection(hash);
+        } else {
+            switchSection('facilities');
+        }
+        fetchAndRenderReports();
+    }
+
+    if (openThemeModalBtn) {
+        openThemeModalBtn.addEventListener('click', () => {
+            themeModal.classList.remove('hidden');
+            const selectedTheme = localStorage.getItem('theme') || 'dark-steel';
+            themeOptions.forEach(option => {
+                if (option.dataset.theme === selectedTheme) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        });
+    }
+
+    if (closeThemeModalBtn) {
+        closeThemeModalBtn.addEventListener('click', () => {
+            themeModal.classList.add('hidden');
+        });
+    }
+
+    themeOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            const selectedTheme = option.dataset.theme;
+            localStorage.setItem('theme', selectedTheme);
+            document.body.setAttribute('data-theme', selectedTheme);
+            themeOptions.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            
+            // Re-render charts with new theme colors
+            Object.values(charts).forEach(chart => chart.destroy());
+            charts = {};
+            const currentSection = document.querySelector('.content-section:not(.hidden)').id;
+            if(currentSection === 'armory') initArmoryCharts();
+            if(currentSection === 'medical') initMedicalDashboard();
+        });
+    });
+
+    // New Roll of Honor Logic
+    const viewRollOfHonorBtn = document.getElementById('viewRollOfHonorBtn');
+    const backToMedicalBtn = document.getElementById('back-to-medical-btn');
+    const medicalSection = document.getElementById('medical');
+    const rollOfHonorSection = document.getElementById('rollOfHonor');
+    const soldierDetailSection = document.getElementById('soldierDetail');
+    const honorRollContainer = document.getElementById('honor-roll-container');
+    const backToHonorRollBtn = document.getElementById('back-to-honor-roll-btn');
+
+    async function showRollOfHonor() {
+        const { data: kia, error } = await window.supabase
+            .from('casualties')
+            .select('*')
+            .eq('status', 'KIA')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching KIA casualties:", error);
+            showToast("Failed to load Roll of Honor.", false);
+            return;
+        }
+
+        honorRollContainer.innerHTML = ''; // Clear previous entries
+
+        if (kia.length === 0) {
+            honorRollContainer.innerHTML = `<p class="text-center col-span-full text-secondary">No fallen soldiers to display at this time.</p>`;
+        } else {
+            kia.forEach(soldier => {
+                const card = `
+                <div class="honor-card cursor-pointer" data-id="${soldier.id}">
+                    <img src="https://placehold.co/100x100/A0AEC0/ffffff?text=${soldier.soldier.charAt(0)}" alt="Portrait of ${soldier.soldier}" class="honor-card-img">
+                    <p class="honor-card-name">${soldier.soldier}</p>
+                    <p class="honor-card-unit">${soldier.unit}</p>
+                    <p class="honor-card-date">Fallen on ${new Date(soldier.created_at).toLocaleDateString()}</p>
+                </div>`;
+                honorRollContainer.innerHTML += card;
+            });
+        }
+
+        medicalSection.classList.add('hidden');
+        soldierDetailSection.classList.add('hidden');
+        rollOfHonorSection.classList.remove('hidden');
+    }
+
+    async function showSoldierDetails(casualtyId) {
+        const { data: details, error } = await window.supabase
+            .from('fallen_soldier_details')
+            .select(`*, casualty:casualties(*)`)
+            .eq('casualty_id', casualtyId)
+            .single();
+
+        const contentContainer = document.getElementById('soldier-detail-content');
+
+        if (error || !details) {
+            console.error("Error fetching soldier details:", error);
+            const { data: basicInfo } = await window.supabase.from('casualties').select('*').eq('id', casualtyId).single();
+            contentContainer.innerHTML = `
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-primary">${basicInfo.soldier}</h2>
+                    <p class="text-secondary mt-2">A detailed memorial has not yet been prepared for this soldier.</p>
+                </div>`;
+        } else {
+            const soldier = details.casualty;
+            let awardsHtml = '<ul><li>No awards listed.</li></ul>';
+            if(details.awards && details.awards.length > 0) {
+                awardsHtml = `<ul class="list-disc list-inside">` + details.awards.map(a => `<li><strong>${a.name}</strong> (${new Date(a.date).toLocaleDateString()})</li>`).join('') + `</ul>`;
+            }
+
+            let tributesHtml = '<p>No tributes yet.</p>';
+            if(details.tributes && details.tributes.length > 0) {
+                tributesHtml = details.tributes.map(t => `<div class="tribute-card"><p>"${t.message}"</p><p class="text-right text-sm text-secondary mt-2">- ${t.from}</p></div>`).join('');
+            }
+            
+            let photosHtml = '<p>No photos available.</p>';
+            if(details.photo_urls && details.photo_urls.length > 0) {
+                photosHtml = `<div class="photo-gallery">` + details.photo_urls.map(url => `<img src="${url}" alt="Photo of ${soldier.soldier}">`).join('') + `</div>`;
+            }
+
+            contentContainer.innerHTML = `
+                <div class="soldier-detail-header">
+                    <img src="${details.profile_image_url || `https://placehold.co/150x150/A0AEC0/ffffff?text=${soldier.soldier.charAt(0)}`}" alt="Portrait of ${soldier.soldier}" class="soldier-profile-img">
+                    <h2 class="soldier-name">${soldier.soldier}</h2>
+                    <p class="soldier-info">${soldier.unit} | Fallen on ${new Date(soldier.created_at).toLocaleDateString()}</p>
+                    <p class="soldier-info">Born: ${details.date_of_birth ? new Date(details.date_of_birth).toLocaleDateString() : 'N/A'} | Hometown: ${details.hometown || 'N/A'}</p>
+                </div>
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="detail-section-title">Biography</h3>
+                        <p class="text-[var(--text-secondary)]">${details.biography || 'No biography available.'}</p>
+                    </div>
+                    <div>
+                        <h3 class="detail-section-title">Service Record</h3>
+                        <p class="text-[var(--text-secondary)] mb-2"><strong>Branch:</strong> ${details.service_branch}</p>
+                        <p class="text-[var(--text-secondary)] mb-2"><strong>Awards & Commendations:</strong></p>
+                        <div class="text-[var(--text-secondary)]">${awardsHtml}</div>
+                    </div>
+                    <div>
+                        <h3 class="detail-section-title">Tributes</h3>
+                        <div class="text-[var(--text-secondary)]">${tributesHtml}</div>
+                    </div>
+                    <div>
+                        <h3 class="detail-section-title">Photo Gallery</h3>
+                        <div class="text-[var(--text-secondary)]">${photosHtml}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        rollOfHonorSection.classList.add('hidden');
+        soldierDetailSection.classList.remove('hidden');
+    }
+
+    if (viewRollOfHonorBtn) viewRollOfHonorBtn.addEventListener('click', showRollOfHonor);
+    if (backToMedicalBtn) backToMedicalBtn.addEventListener('click', () => {
+        rollOfHonorSection.classList.add('hidden');
+        medicalSection.classList.remove('hidden');
+    });
+
+    if (honorRollContainer) {
+        honorRollContainer.addEventListener('click', e => {
+            const card = e.target.closest('.honor-card');
+            if (card && card.dataset.id) {
+                showSoldierDetails(card.dataset.id);
+            }
+        });
+    }
+
+    if(backToHonorRollBtn) backToHonorRollBtn.addEventListener('click', showRollOfHonor);
+});
+    </script>
+</body>
+</html>
+
