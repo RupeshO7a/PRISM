@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISM - Integrated Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        const SUPABASE_URL = 'https://gyhvpdsjlciqmbmidctd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5aHZwZHNqbGNpcW1ibWlkY3RkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTkwMDUsImV4cCI6MjA3MTk3NTAwNX0.cmk7Ov9Mq3RmR5G2laKnn8fcjZYzzGZVwAZ1GX7GxWc';
+        window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-gray-800">
+
+    <div id="login-container" class="login-screen">
+        <div class="login-box">
+            <div class="login-logo">
+                <img src="https://placehold.co/100x100/A0AEC0/ffffff?text=P" alt="PRISM Logo" />
+                <h1 class="text-3xl font-bold tracking-wider">PRISM</h1>
+            </div>
+            
+            <p class="login-subtitle">Authorized Personnel Only</p>
+            <div id="login-message" class="hidden message-box"></div>
+            <form id="loginForm">
+                <div class="login-input-group">
+                    <label for="username" class="sr-only">Username</label>
+                    <span class="input-icon">👤</span>
+                    <input type="text" id="username" name="username" class="login-input" placeholder="Enter your username">
+                </div>
+                <div class="login-input-group">
+                    <label for="password" class="sr-only">Password</label>
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" name="password" class="login-input" placeholder="Enter your password">
+                </div>
+                <button type="submit" class="login-btn">Log In</button>
+            </form>
+            <p class="login-footer">This system is for authorized use only. All activities are monitored and recorded.</p>
+        </div>
+    </div>
+    
+    <div id="app" class="flex flex-col min-h-screen hidden bg-primary">
+        
+        <header class="bg-secondary text-primary p-4 shadow-md">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <a href="#facilities" class="text-2xl font-bold tracking-wider text-primary">PRISM</a>
+                    <p class="text-sm text-secondary md:ml-4">Integrated Command Center</p>
+                </div>
+                <ul class="flex items-center space-x-2 md:space-x-4">
+                    <li><a href="#facilities" class="nav-item py-2 px-3 rounded-md nav-active" data-section="facilities">
+                        <span class="mr-1">🏠</span> Reports
+                    </a></li>
+                    <li><a href="#armory" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="armory">
+                        <span class="mr-1">🛡️</span> Inventory
+                    </a></li>
+                    <li><a href="#medical" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="medical">
+                        <span class="mr-1">⚕️</span> Medical
+                    </a></li>
+                    <li><a href="#settings" class="nav-item py-2 px-3 rounded-md nav-inactive" data-section="settings">
+                        <span class="mr-1">⚙️</span> Settings
+                    </a></li>
+                    <li><a href="#" id="logoutBtn" class="nav-item py-2 px-3 rounded-md nav-inactive">
+                        <span class="mr-1">🚪</span> Log Out
+                    </a></li>
+                </ul>
+            </div>
+        </header>
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+
+            <section id="facilities" class="content-section">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-4 sm:mb-0">Facility & Quarters Management</h2>
+                    <button id="openModalBtn" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto">New Report</button>
+                </div>
+                <p class="mb-8 text-secondary max-w-3xl">This section provides a centralized system for soldiers to report and track issues related to their living quarters and base facilities, such as electricity, water, or structural problems. The goal is to streamline maintenance requests and improve living conditions efficiently.</p>
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-primary">Recent Activity</h3>
+                    <div class="overflow-x-auto">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-container">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="armory" class="content-section hidden">
+                <div id="armory-view">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-primary mb-4 sm:mb-0">Armory & Logistics Inventory</h2>
+                    </div>
+                    <p class="mb-8 text-secondary max-w-3xl">This module provides a real-time, comprehensive overview of the armory's inventory. It allows for effective management of weapons, ammunition, and other critical equipment, ensuring mission readiness and accountability of all assets.</p>
+                    <div id="armory-access-message" class="message-box hidden bg-yellow-100 text-yellow-800 border-yellow-400"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="armory-content">
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-center text-primary">Weapon Categories</h3>
+                            <div class="chart-container h-64 md:h-80">
+                                <canvas id="weaponChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="card p-6">
+                            <h3 class="text-xl font-semibold mb-4 text-center text-primary">Ammunition Stock Levels</h3>
+                            <div class="chart-container h-64 md:h-80">
+                                <canvas id="ammoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="armory-details-section" class="content-section hidden">
+                <div class="max-w-4xl mx-auto card p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h1 class="text-3xl font-bold text-primary" id="armory-details-title"></h1>
+                        <button id="back-to-armory-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                            <span>Back to Armory</span>
+                        </button>
+                    </div>
+                    <div class="space-y-6" id="weapon-details-container">
+                        </div>
+                </div>
+            </section>
+
+            <section id="medical" class="content-section hidden">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-primary mb-4 md:mb-0">Medical & Casualty Reporting</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="openMedevacModalBtn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Request Medevac</button>
+                        <button id="openAddCasualtyModalBtn" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">Add Casualty</button>
+                        <button id="viewRollOfHonorBtn" class="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors">Roll of Honor</button>
+                    </div>
+                </div>
+                <p class="mb-8 text-secondary max-w-3xl">This system tracks and displays vital medical health statistics and casualty reports from the field. It provides accurate, up-to-date data to support command decisions and ensure proper government reporting to honor the service and sacrifice of soldiers.</p>
+                
+                <div id="medical-stats" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Active Duty (WIA)</h4>
+                        <p id="wia-count" class="text-4xl font-bold text-orange-500">0</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Lives Lost (KIA)</h4>
+                        <p id="kia-count" class="text-4xl font-bold text-red-600">0</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <h4 class="text-lg font-semibold text-secondary">Medevac Requests</h4>
+                        <p id="medevac-count" class="text-4xl font-bold text-blue-500">0</p>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-primary mb-4 sm:mb-0">Live Casualty Feed</h3>
+                        <div id="casualty-filters" class="flex space-x-2">
+                            <button data-filter="all" class="filter-btn active">All</button>
+                            <button data-filter="WIA" class="filter-btn">WIA</button>
+                            <button data-filter="KIA" class="filter-btn">KIA</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Soldier</th>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                    <th>Injury</th>
+                                </tr>
+                            </thead>
+                            <tbody id="casualty-log-container">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-primary">Casualty Trends (Last 30 Days)</h3>
+                        <div class="chart-container h-80">
+                            <canvas id="casualtyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-primary">Injury Type Distribution</h3>
+                        <div class="chart-container h-80">
+                            <canvas id="injuryTypeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="rollOfHonor" class="content-section hidden">
+                <div class="max-w-5xl mx-auto">
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-4xl font-bold text-primary tracking-wider">Roll of Honor</h2>
+                        <button id="back-to-medical-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>Back to Medical</span>
+                        </button>
+                    </div>
+                    <p class="text-center text-secondary mb-12 text-lg">In remembrance of those who made the ultimate sacrifice. We honor their courage, service, and memory.</p>
+                    <div id="honor-roll-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    </div>
+                </div>
+            </section>
+
+            <section id="soldierDetail" class="content-section hidden">
+                <div class="max-w-5xl mx-auto">
+                    <div class="flex justify-end mb-4">
+                        <button id="back-to-honor-roll-btn" class="text-[var(--login-btn-bg)] hover:underline transition-colors flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>Back to Roll of Honor</span>
+                        </button>
+                    </div>
+                    <div id="soldier-detail-content" class="card p-8">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </section>
+            
+            <section id="settings" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-primary mb-2">Settings</h2>
+                <p class="mb-8 text-secondary">Manage your profile, security, and application preferences.</p>
+                <div id="toastMessage" class="toast-message"></div>
+                <div class="space-y-8">
+                    <form id="profileForm" class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Profile Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="fullName" class="block text-sm font-medium text-secondary">Full Name</label>
+                                <input type="text" id="fullName" name="fullName" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Full Name">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-secondary">Email</label>
+                                <input type="email" id="email" name="email" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Email Address">
+                            </div>
+                            <div>
+                                <label for="rank" class="block text-sm font-medium text-secondary">Rank</label>
+                                <input type="text" id="rank" name="rank" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Rank">
+                            </div>
+                            <div>
+                                <label for="unit" class="block text-sm font-medium text-secondary">Unit</label>
+                                <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-color shadow-sm p-2 bg-primary text-primary" placeholder="Unit">
+                            </div>
+                        </div>
+                        <div class="mt-6 text-right">
+                            <button type="submit" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition-colors">Update Profile</button>
+                        </div>
+                    </form>
+
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Security Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Change Password</h4>
+                                    <p class="text-sm text-secondary">Update your password regularly to maintain security.</p>
+                                </div>
+                                <button id="openChangePasswordModalBtn" class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Change</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-primary">Application Preferences</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Notification Preferences</h4>
+                                    <p class="text-sm text-secondary">Manage how you receive critical updates and alerts.</p>
+                                </div>
+                                <button class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Manage</button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-primary">Theme</h4>
+                                    <p class="text-sm text-secondary">Customize the application's appearance.</p>
+                                </div>
+                                <button id="openThemeModalBtn" class="bg-primary text-primary font-bold py-2 px-4 rounded-lg hover:bg-secondary transition-colors">Customize</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="reportModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Submit New Facility Report</h3>
+            <form id="reportForm">
+                <div class="mb-4">
+                    <label for="issueType" class="block text-secondary font-semibold mb-2">Issue Type</label>
+                    <select id="issueType" name="issueType" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>Electricity</option>
+                        <option>Water/Plumbing</option>
+                        <option>Structural</option>
+                        <option>Room Fixtures</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="location" class="block text-secondary font-semibold mb-2">Building/Room Number</label>
+                    <input type="text" id="location" name="location" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="e.g., Barracks B, Room 201">
+                </div>
+                <div class="mb-6">
+                    <label for="description" class="block text-secondary font-semibold mb-2">Description</label>
+                    <textarea id="description" name="description" rows="4" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Please provide a detailed description of the issue."></textarea>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="armoryLoginModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Armory Access Required</h3>
+            <p class="text-secondary mb-4">Please enter your Authority ID to view this section.</p>
+            <div id="armoryMessage" class="hidden message-box"></div>
+            <form id="armoryLoginForm">
+                <div class="mb-4 relative">
+                    <label for="authorityId" class="block text-secondary font-semibold mb-2">Authority ID</label>
+                    <input type="password" id="authorityId" name="authorityId" class="w-full p-2 pr-12 border border-color rounded-lg bg-primary text-primary" placeholder="Enter your ID">
+                    <button type="button" id="togglePasswordVisibility" class="absolute right-2 top-10 p-2 text-secondary hover:text-primary focus:outline-none">
+                        Show
+                    </button>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeArmoryModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Log In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="changePasswordModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Change Password</h3>
+            <div id="changePasswordMessage" class="hidden message-box"></div>
+            <form id="changePasswordForm">
+                <div class="mb-4">
+                    <label for="currentPassword" class="block text-secondary font-semibold mb-2">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Enter current password">
+                </div>
+                <div class="mb-4">
+                    <label for="newPassword" class="block text-secondary font-semibold mb-2">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Enter new password">
+                </div>
+                <div class="mb-6">
+                    <label for="confirmNewPassword" class="block text-secondary font-semibold mb-2">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" placeholder="Re-enter new password">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeChangePasswordModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="themeModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Customize Theme</h3>
+            <p class="text-secondary mb-6">Select a color theme for the dashboard.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="theme-option" data-theme="dark-steel">
+                    <div class="color-box dark-steel-preview"></div>
+                    <p class="font-semibold text-center text-primary">Dark Steel</p>
+                </div>
+                <div class="theme-option" data-theme="ocean-blue">
+                    <div class="color-box ocean-blue-preview"></div>
+                    <p class="font-semibold text-center text-primary">Ocean Blue</p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-6">
+                <button type="button" id="closeThemeModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="medevacModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Request Medical Evacuation</h3>
+            <form id="medevacForm">
+                <div class="mb-4">
+                    <label for="soldierName" class="block text-secondary font-semibold mb-2">Soldier Name</label>
+                    <input type="text" id="soldierName" name="soldierName" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="soldierUnit" class="block text-secondary font-semibold mb-2">Unit</label>
+                    <input type="text" id="soldierUnit" name="soldierUnit" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="injuryDetails" class="block text-secondary font-semibold mb-2">Injury Details</label>
+                    <textarea id="injuryDetails" name="injuryDetails" rows="3" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required></textarea>
+                </div>
+                <div class="mb-6">
+                    <label for="urgency" class="block text-secondary font-semibold mb-2">Urgency</label>
+                    <select id="urgency" name="urgency" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>Routine</option>
+                        <option>Priority</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeMedevacModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="addCasualtyModal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-primary">Add Casualty Report</h3>
+            <form id="addCasualtyForm">
+                <div class="mb-4">
+                    <label for="casualtySoldierName" class="block text-secondary font-semibold mb-2">Soldier Name</label>
+                    <input type="text" id="casualtySoldierName" name="casualtySoldierName" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="casualtySoldierUnit" class="block text-secondary font-semibold mb-2">Unit</label>
+                    <input type="text" id="casualtySoldierUnit" name="casualtySoldierUnit" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="mb-4">
+                    <label for="casualtyStatus" class="block text-secondary font-semibold mb-2">Status</label>
+                    <select id="casualtyStatus" name="casualtyStatus" class="w-full p-2 border border-color rounded-lg bg-primary text-primary">
+                        <option>WIA</option>
+                        <option>KIA</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="casualtyInjury" class="block text-secondary font-semibold mb-2">Injury</label>
+                    <input type="text" id="casualtyInjury" name="casualtyInjury" class="w-full p-2 border border-color rounded-lg bg-primary text-primary" required>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="closeAddCasualtyModalBtn" class="bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600">Cancel</button>
+                    <button type="submit" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
